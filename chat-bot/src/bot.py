@@ -95,3 +95,10 @@ if __name__ == "__main__":
         bot.polling()
     else:
         print("OpenAI key not found. Set it in your environment variables.")
+
+
+
+
+        OPEN_AI_KEY = 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
+
+TELEGRAM_BOT_TOKEN=5869687994:AAHN38mSntZO9LQ6k8o6uBJsHlE6tcuRIWQ
