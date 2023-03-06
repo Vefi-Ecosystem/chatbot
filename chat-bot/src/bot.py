@@ -95,7 +95,3 @@ if __name__ == "__main__":
         bot.polling()
     else:
         print("OpenAI key not found. Set it in your environment variables.")
-
-
-
-        This is what im taliking about
