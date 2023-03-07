@@ -22,7 +22,7 @@ url = "https://www.medium.com/@vefi.official"
 index = None
 
 
-def construct_index(directory_path):
+def construct_index(url):
     # set the maximum input size
     max_input_size = 4096
 
@@ -62,15 +62,33 @@ def construct_index(directory_path):
         documents = [{"text": text}]
     else:
         documents = []
+
+    index_documents = [
+        {"text": document["text"], "metadata": {"url": url}} for document in documents
+    ]
+
     global index
     index = GPTSimpleVectorIndex(
-        documents,
+        index_documents,
         llm_predictor=llm_predictor,
         prompt_helper=prompt_helper,
-        verbose=True,
+        # verbose=True,
     )
 
     index.save_to_disk("index.json")
+
+
+@bot.message_handler(func=lambda message: message.new_chat_member)
+def greet_new_member(message):
+    for new_member in message.new_chat_members:
+        bot.send_message(
+            chat_id=message.chat.id,
+            text=f"{new_member.first_name}, you are welcome to Vefi Ecosystem Global Community!",
+        )
+        bot.send_message(
+            chat_id=message.chat.id,
+            text=f"Hi! Everyone we have a new member joining us, let's give them a warm welcome.",
+        )
 
 
 @bot.message_handler(commands=["start", "help"])
@@ -85,7 +103,11 @@ def start_handler(message):
 def message_handler(message):
     query = message.text
     response = index.query(query, response_mode="compact", verbose=False)
-    bot.send_message(chat_id=message.chat.id, text=response.response)
+    url = response.metadata[0]["url"]
+    bot.send_message(
+        chat_id=message.chat.id,
+        text=f"Here's a page I found on {url} that might help:\n{response.response}",
+    )
 
 
 if __name__ == "__main__":
