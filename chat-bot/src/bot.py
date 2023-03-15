@@ -1,7 +1,7 @@
 import os
+
 import telebot
-import requests
-from bs4 import BeautifulSoup as bs
+
 from langchain import OpenAI
 from gpt_index import (
     SimpleDirectoryReader,
@@ -9,20 +9,19 @@ from gpt_index import (
     LLMPredictor,
     PromptHelper,
 )
-from dotenv import load_dotenv as ld
 
-ld()
+from dotenv import load_dotenv
+
+load_dotenv()
 
 bot = telebot.TeleBot(os.getenv("TELEGRAM_BOT_TOKEN"))
 
 aiKey = os.getenv("OPEN_AI_KEY")
 
-url = "https://www.medium.com/@vefi.official"
-
 index = None
 
 
-def construct_index(url):
+def construct_index(directory_path):
     # set the maximum input size
     max_input_size = 4096
 
@@ -52,27 +51,13 @@ def construct_index(url):
         chunk_size_limit=chunk_size_limit,
     )
 
-    response = requests.get(url)
+    documents = SimpleDirectoryReader(directory_path).load_data()
 
-    soup = bs(response.content, "lxml")
-
-    text = soup.get_text()
-
-    if response.status_code == 200:
-        documents = [{"text": text}]
-    else:
-        documents = []
-
-    index_documents = [
-        {"text": document["text"], "metadata": {"url": url}} for document in documents
-    ]
-
-    global index
     index = GPTSimpleVectorIndex(
-        index_documents,
+        documents,
         llm_predictor=llm_predictor,
         prompt_helper=prompt_helper,
-        # verbose=True,
+        verbose=True,
     )
 
     index.save_to_disk("index.json")
@@ -103,17 +88,14 @@ def start_handler(message):
 def message_handler(message):
     query = message.text
     response = index.query(query, response_mode="compact", verbose=False)
-    url = response.metadata[0]["url"]
-    bot.send_message(
-        chat_id=message.chat.id,
-        text=f"Here's a page I found on {url} that might help:\n{response.response}",
-    )
+    bot.send_message(chat_id=message.chat.id, text=response.response)
 
 
 if __name__ == "__main__":
     if aiKey:
-        construct_index(url)
+        construct_index("/chat-bot/Vefi-Information")
         index = GPTSimpleVectorIndex.load_from_disk("index.json")
+
         bot.polling()
     else:
         print("OpenAI key not found. Set it in your environment variables.")
